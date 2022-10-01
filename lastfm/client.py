@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Any, Optional, List
 
 import aiohttp
 
@@ -14,6 +14,12 @@ class Client:
     def __init__(self, api_key: str, *, session: Optional[aiohttp.ClientSession] = None) -> None:
         self.api_key = api_key
         self.http = HTTPClient(api_key, session)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args: Any):
+        await self.close()
 
     async def close(self) -> None:
         await self.http.close()
