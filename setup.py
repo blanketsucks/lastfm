@@ -7,6 +7,7 @@ setup(
     packages=['lastfm'],
     python_requires='>=3.8',
     install_requires=['aiohttp'],
+    package_data={ 'lastfm': ['py.typed'] },
     classifiers=[
         'Typing :: Typed'
     ]
