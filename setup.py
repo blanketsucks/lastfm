@@ -6,5 +6,8 @@ setup(
     description='An asynchronous wrapper for the last.fm API.',
     packages=['lastfm'],
     python_requires='>=3.8',
-    install_requires=['aiohttp']
+    install_requires=['aiohttp'],
+    classifiers=[
+        'Typing :: Typed'
+    ]
 )
