@@ -36,6 +36,11 @@ class HTTPClient:
         
         params.update({'method': method, 'api_key': self.api_key, 'format': 'json', **kwargs})
         params = {k: v for k, v in params.items() if v is not None}
+
+        for key, value in params.items():
+            if isinstance(value, bool):
+                params[key] = 1 if value else 0
+
         async with session.get(self.URL, params=params) as response:
             if response.status == 429:
                 retry_after = float(response.headers['Retry-After'])
@@ -256,7 +261,9 @@ class HTTPClient:
         autocorrect: Optional[bool] = None, 
         user: Optional[str] = None
     ) -> Dict[str, Any]:
-        return await self.request('track.getTags', artist=artist, track=track, mbid=mbid, autocorrect=autocorrect, user=user)
+        return await self.request(
+            'track.getTags', artist=artist, track=track, mbid=mbid, autocorrect=autocorrect, user=user
+        )
 
     async def get_track_top_tags(
         self, 

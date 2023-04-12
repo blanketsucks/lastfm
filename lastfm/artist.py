@@ -13,6 +13,9 @@ if TYPE_CHECKING:
 
 __all__ = ('Artist', 'ArtistBio')
 
+def to_bool(value: str) -> bool:
+    return value == '1'
+
 class ArtistBio(Wiki):
     __slots__ = Wiki.__slots__ + ('links',)
 
@@ -48,15 +51,11 @@ class Artist:
         self.url: Optional[str] = data.get('url')
         self.mbid: Optional[str] = data.get('mbid')
 
-        if 'streamable' in data:
-            self.streamable: bool = data['streamable'] == '1'
-        else:
-            self.streamable = False
+        streamable = data.get('streamable')
+        self.streamable = to_bool(streamable) if streamable else False
 
-        if 'ontour' in data:
-            self.ontour: bool = data['ontour'] == '1'
-        else:
-            self.ontour = False
+        ontour = data.get('ontour')
+        self.ontour = to_bool(ontour) if ontour else False
 
         if 'stats' in data:
             self.listeners: int = int(data['stats']['listeners'])
@@ -95,7 +94,9 @@ class Artist:
         self, *, user: Optional[str] = None
     ) -> List[Tag]:
         data = await self._http.get_artist_tags(self.name, user=user)
-        return [Tag(tag, self._http) for tag in data['tags']['tag']]
+
+        tags = data['tags'].get('tag', [])    
+        return [Tag(tag, self._http) for tag in tags]
 
     async def get_top_tags(self) -> List[Tag]:
         data = await self._http.get_artist_top_tags(self.name)

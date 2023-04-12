@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, Any, List, Optional
 
 from .http import HTTPClient
@@ -7,22 +9,54 @@ from .image import Image
 from .track import Track
 from .wiki import Wiki
 
-__all__ = 'Album',
+__all__ = ('Album', 'PartialAlbum')
+
+def _get_name(data: Dict[str, Any]) -> str:
+    if '#text' in data:
+        return data['#text']
+    elif 'title' in data:
+        return data['title']
+
+    raise ValueError('No name found')
+
+class PartialAlbum:
+    __slots__ = ('_http', '_data', 'mbid', 'name', 'artist')
+
+    def __init__(self, data: Dict[str, Any], artist: Optional[str], http: HTTPClient) -> None:
+        self._http = http
+        self._data = data
+
+        mbid = data['mbid']
+
+        self.mbid: Optional[str] = mbid if mbid else None
+        self.name: str = _get_name(data)
+        self.artist: str = data.get('artist', artist)
+
+    def __repr__(self) -> str:
+        return f'<PartialAlbum name={self.name!r} mbid={self.mbid!r}>'
+    
+    @property
+    def images(self) -> List[Image]:
+        return [Image(image, self._http) for image in self._data.get('image', [])]
+    
+    async def fetch(self) -> Album:
+        if self.mbid:
+            data = await self._http.get_album_info(mbid=self.mbid)
+        else:
+            data = await self._http.get_album_info(artist=self.artist, album=self.name)
+
+        return Album(data['album'], self._http)
 
 class Album:
-    __slots__ = ('_http', '_data', 'name', 'artist', 'mbid', 'url', 'listeners', 'playcount')
+    __slots__ = (
+        '_http', '_data', 'name', 'artist', 'mbid', 'url', 'listeners', 'playcount'
+    )
 
     def __init__(self, data: Dict[str, Any], http: HTTPClient) -> None:
         self._http = http
         self._data = data
 
-        # This api is so dogshit there are 3 possible keys where the album name can be
-        if 'name' in data:
-            self.name: str = data['name']
-        elif 'title' in data:
-            self.name: str = data['title']
-        elif '#text' in data:
-            self.name: str = data['#text']
+        self.name: str = data['name']
 
         self.artist: Optional[str] = data.get('artist')
         # From what i tested, the mbid is not present if the request was made using an mbid
@@ -36,7 +70,11 @@ class Album:
         return f'<Album name={self.name!r}>'
 
     @property
-    def wiki(self) -> Wiki:
+    def wiki(self) -> Optional[Wiki]:
+        data = self._data.get('wiki')
+        if data is None:
+            return None
+
         return Wiki(self._data['wiki'])
 
     @property

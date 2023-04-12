@@ -7,3 +7,5 @@ from .user import *
 from .track import *
 from .image import *
 from .wiki import *
+
+from . import errors

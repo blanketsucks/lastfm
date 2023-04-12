@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, List, Protocol, TypeVar, Generator, Optional
+from typing import TYPE_CHECKING, Any, Callable, Generic, List, Coroutine, TypeVar, Generator, Optional
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
@@ -8,15 +8,9 @@ if TYPE_CHECKING:
 
 T = TypeVar('T')
 
-M = TypeVar('M')
-
 __all__ = (
     'Paginator',
 )
-
-class PaginatorCallback(Protocol, Generic[T]):
-    async def __call__(self, *args: Any, page: int, limit: int) -> List[T]:
-        ...
 
 class EmptyPage(Exception):
     pass
@@ -67,10 +61,10 @@ class Paginator(AbstractPaginator[T]):
 
     def __init__(
         self,
-        callback: PaginatorCallback[T], 
+        callback: Callable[..., Coroutine[None, None, List[T]]],
+        *args: Any,
         limit: int = 30,
         max: Optional[int] = None,
-        *args: Any,
         **kwargs: Any,
     ) -> None:
         self.items: List[T] = []
