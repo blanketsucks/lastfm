@@ -118,7 +118,8 @@ class Album:
         else:
             data = await self._http.get_album_tags(self.artist, self.name, user=user)
 
-        return [Tag(tag, self._http) for tag in data['tags']['tag']]
+        tags = data['tags'].get('tag', [])
+        return [Tag(tag, self._http) for tag in tags]
 
     async def get_top_tags(self) -> List[Tag]:
         if self.mbid:
@@ -126,5 +127,6 @@ class Album:
         else:
             data = await self._http.get_album_top_tags(self.artist, self.name)
 
-        return [Tag(tag, self._http) for tag in data['toptags']['tag']]
+        tags = data['toptags'].get('tag', [])
+        return [Tag(tag, self._http) for tag in tags]
 
