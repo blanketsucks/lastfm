@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any, List, Optional, TYPE_CHECKING
+import datetime
 
 from .http import HTTPClient
 from .tag import Tag
@@ -20,6 +21,20 @@ class Streamable:
     def __init__(self, data: Dict[str, Any]) -> None:
         self.fulltrack: bool = to_bool(data['fulltrack'])
         self.text: bool = to_bool(data['#text'])
+
+class Date:
+    __slots__ = ('uts', 'text')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.uts: int = int(data['uts'])
+        self.text: str = data['#text']
+
+    def __repr__(self) -> str:
+        return f'<Date uts={self.uts} text={self.text!r}>'
+
+    @property
+    def datetime(self) -> datetime.datetime:
+        return datetime.datetime.fromtimestamp(self.uts)
     
 class Track:
     __slots__ = (
@@ -87,9 +102,6 @@ class Track:
     def attr(self) -> Dict[str, Any]:
         return self._data.get('@attr', {})
 
-    def is_now_playing(self) -> bool:
-        return self.attr.get('nowplaying') == 'true'
-
     async def get_tags(self, *, user: Optional[str] = None) -> List[Tag]:
         if self.mbid:
             data = await self._http.get_track_tags(mbid=self.mbid, user=user)
@@ -120,3 +132,22 @@ class Track:
 
     async def unlove(self, api_sig: str, sk: str) -> None:
         await self._http.unlove_track(api_sig, sk, self.artist.name, self.name)
+
+class UserTrack(Track):
+    __slots__ = Track.__slots__ + ('loved',)
+
+    def __init__(self, data: Dict[str, Any], http: HTTPClient) -> None:
+        super().__init__(data, http)
+
+        self.loved: bool = to_bool(data.get('loved', '0'))
+
+    @property
+    def date(self) -> Optional[Date]:
+        data = self._data.get('date')
+        if data is None:
+            return None
+
+        return Date(data)
+
+    def is_now_playing(self) -> bool:
+        return self.attr.get('nowplaying') == 'true'

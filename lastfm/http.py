@@ -31,7 +31,6 @@ class HTTPClient:
 
     async def request(self, method: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Dict[str, Any]:
         session = await self._create_session()
-
         params = params or {}
         
         params.update({'method': method, 'api_key': self.api_key, 'format': 'json', **kwargs})

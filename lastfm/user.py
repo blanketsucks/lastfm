@@ -9,7 +9,7 @@ from .http import HTTPClient
 from .image import Image
 from .album import Album
 from .artist import Artist
-from .track import Track
+from .track import Track, UserTrack, to_bool
 from .tag import Tag
 
 __all__ = ('Period', 'User')
@@ -51,33 +51,44 @@ class User:
         self.gender: str = data['gender']
         self.age: int = int(data['age'])
         self.playcount: int = int(data['playcount'])
-        self.artist_count: int = int(data['playcount'])
-        self.album_count: int = int(data['playcount'])
-        self.track_count: int = int(data['playcount'])
-        self.bootstrap: int = int(data['playcount'])
-        self.subscriber: int = int(data['playcount'])
+        self.artist_count: int = int(data['artist_count'])
+        self.album_count: int = int(data['album_count'])
+        self.track_count: int = int(data['track_count'])
+        self.bootstrap: bool = to_bool(data['bootstrap'])
+        self.subscriber: bool = to_bool(data['subscriber'])
 
     def __repr__(self) -> str:
         return f'<User name={self.name!r}>'
 
     @property
     def images(self) -> List[Image]:
-        return [Image(image, self._http) for image in self._data['image']]
+        return [Image(image, self._http) for image in self._data['image'] if image['#text']]
 
-    async def get_top_artists(self, period: Period = Period.Overall) -> List[Artist]:
-        data = await self._http.get_user_top_artists(self.name, period)
+    @property
+    def registered(self) -> datetime.datetime:
+        data = self._data['registered']
+        return datetime.datetime.fromtimestamp(int(data['unixtime']))
+
+    async def get_top_artists(
+        self, period: Period = Period.Overall, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Artist]:
+        data = await self._http.get_user_top_artists(self.name, period, limit, page)
         return [Artist(artist, self._http) for artist in data['topartists']['artist']]
 
-    async def get_top_albums(self, period: Period = Period.Overall) -> List[Album]:
-        data = await self._http.get_user_top_albums(self.name, period)
+    async def get_top_albums(
+        self, period: Period = Period.Overall, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Album]:
+        data = await self._http.get_user_top_albums(self.name, period, limit, page)
         return [Album(album, self._http) for album in data['topalbums']['album']]
 
-    async def get_top_tracks(self, period: Period = Period.Overall) -> List[Track]:
-        data = await self._http.get_user_top_tracks(self.name, period)
+    async def get_top_tracks(
+        self, period: Period = Period.Overall, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Track]:
+        data = await self._http.get_user_top_tracks(self.name, period, limit, page)
         return [Track(track, self._http) for track in data['toptracks']['track']]
 
-    async def get_top_tags(self) -> List[Tag]:
-        data = await self._http.get_user_top_tags(self.name)
+    async def get_top_tags(self, *, limit: Optional[int] = None) -> List[Tag]:
+        data = await self._http.get_user_top_tags(self.name, limit)
         return [Tag(tag, self._http) for tag in data['toptags']['tag']]
 
     async def get_recent_tracks(
@@ -85,40 +96,74 @@ class User:
         *,
         limit: Optional[int] = None,
         page: Optional[int] = None,
-        from_: Optional[datetime.datetime] = None,
-        to: Optional[datetime.datetime] = None,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
         extended: Optional[bool] = None
-    ) -> List[Track]:
+    ) -> List[UserTrack]:
         kwargs: Dict[str, Any] = {
             'limit': limit,
             'page': page,
             'extended': extended
         }
 
-        if from_ is not None:
-            kwargs['from'] = int(from_.timestamp())
-        if to is not None:
-            kwargs['to'] = int(to.timestamp())
+        if start is not None:
+            kwargs['from_'] = int(start.timestamp())
+        if end is not None:
+            kwargs['to'] = int(end.timestamp())
 
         data = await self._http.get_user_recent_tracks(self.name, **kwargs)
-        return [Track(track, self._http) for track in data['recenttracks']['track']]
+        return [UserTrack(track, self._http) for track in data['recenttracks']['track']]
 
-    async def get_weekly_artist_chart(self) -> List[Artist]:
-        data = await self._http.get_user_weekly_artist_chart(self.name)
+    async def get_weekly_artist_chart(
+        self, *, start: Optional[datetime.datetime] = None, end: Optional[datetime.datetime] = None
+    ) -> List[Artist]:
+        kwargs: Dict[str, Any] = {}
+        if start is not None:
+            kwargs['from_'] = int(start.timestamp())
+        if end is not None:
+            kwargs['to'] = int(end.timestamp())
+
+        data = await self._http.get_user_weekly_artist_chart(self.name, **kwargs)
         return [Artist(artist, self._http) for artist in data['weeklyartistchart']['artist']]
 
-    async def get_weekly_album_chart(self) -> List[Album]:
-        data = await self._http.get_user_weekly_album_chart(self.name)
+    async def get_weekly_album_chart(
+        self, *, start: Optional[datetime.datetime] = None, end: Optional[datetime.datetime] = None
+    ) -> List[Album]:
+        kwargs: Dict[str, Any] = {}
+        if start is not None:
+            kwargs['from_'] = int(start.timestamp())
+        if end is not None:
+            kwargs['to'] = int(end.timestamp())
+
+        data = await self._http.get_user_weekly_album_chart(self.name, **kwargs)
         return [Album(album, self._http) for album in data['weeklyalbumchart']['album']]
 
-    async def get_weekly_track_chart(self) -> List[Track]:
-        data = await self._http.get_user_weekly_track_chart(self.name)
+    async def get_weekly_track_chart(
+        self, *, start: Optional[datetime.datetime] = None, end: Optional[datetime.datetime] = None
+    ) -> List[Track]:
+        kwargs: Dict[str, Any] = {}
+        if start is not None:
+            kwargs['from_'] = int(start.timestamp())
+        if end is not None:
+            kwargs['to'] = int(end.timestamp())
+
+        data = await self._http.get_user_weekly_track_chart(self.name, **kwargs)
         return [Track(track, self._http) for track in data['weeklytrackchart']['track']]
 
-    async def get_loved_tracks(self) -> List[Track]:
-        data = await self._http.get_user_loved_tracks(self.name)
-        return [Track(track, self._http) for track in data['lovedtracks']['track']]
+    async def get_loved_tracks(
+        self, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[UserTrack]:
+        data = await self._http.get_user_loved_tracks(self.name, limit, page)
+        tracks: List[UserTrack] = []
+
+        for track in data['lovedtracks']['track']:
+            track['loved'] = '1' # A bit of a hack since the API does not provide this field
+            tracks.append(UserTrack(track, self._http))
+
+        return tracks
     
-    async def get_friends(self) -> List[User]:
-        data = await self._http.get_user_friends(self.name)
+    async def get_friends(
+        self, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[User]:
+        data = await self._http.get_user_friends(self.name, limit, page)
         return [User(user, self._http) for user in data['friends']['user']]
