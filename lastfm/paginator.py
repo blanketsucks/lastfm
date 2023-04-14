@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Coroutine, TypeVar, Generator, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Callable, Generic, List, Coroutine, TypeVar, Generator, Optional
 from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 T = TypeVar('T')
+R = TypeVar('R')
 
 __all__ = (
     'Paginator',
@@ -44,6 +45,45 @@ class AbstractPaginator(ABC, Generic[T]):
         except (EmptyPage, MaxReached):
             raise StopAsyncIteration
 
+class MappedPaginator(Generic[T, R], AbstractPaginator[R]):
+    def __init__(self, fn: Callable[[T], R], paginator: Paginator[T]) -> None:
+        self.fn = fn
+        self.paginator = paginator
+
+        self.items = []
+
+    async def next(self) -> List[R]:
+        items = await self.paginator.next()
+        mapped = [self.fn(item) for item in items]
+
+        self.items.extend(mapped)
+        return mapped
+    
+class FilteredPaginator(AbstractPaginator[T]):
+    def __init__(self, fn: Callable[[T], bool], paginator: Paginator[T]) -> None:
+        self.fn = fn
+        self.paginator = paginator
+
+        self.items = []
+
+    async def next(self) -> List[T]:
+        items = await self.paginator.next()
+        filtered = [item for item in items if self.fn(item)]
+
+        self.items.extend(filtered)
+        return filtered
+    
+    async def __anext__(self) -> T:
+        try:
+            if self.items:
+                return self.items.pop()
+            
+            while not self.items:
+                await self.next()
+
+            return self.items.pop()
+        except (EmptyPage, MaxReached):
+            raise StopAsyncIteration
 
 class Paginator(AbstractPaginator[T]):
     MAX_PAGES = 1000
@@ -111,3 +151,9 @@ class Paginator(AbstractPaginator[T]):
 
         self.items.extend(items)
         return items
+    
+    def map(self, fn: Callable[[T], R]) -> MappedPaginator[T, R]:
+        return MappedPaginator(fn, self)
+    
+    def filter(self, fn: Callable[[T], bool]) -> FilteredPaginator[T]:
+        return FilteredPaginator(fn, self)

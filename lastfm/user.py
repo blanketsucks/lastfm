@@ -11,6 +11,7 @@ from .album import Album
 from .artist import Artist
 from .track import Track, UserTrack, to_bool
 from .tag import Tag
+from .chart import WeeklyChart
 
 __all__ = ('Period', 'User')
 
@@ -149,6 +150,10 @@ class User:
 
         data = await self._http.get_user_weekly_track_chart(self.name, **kwargs)
         return [Track(track, self._http) for track in data['weeklytrackchart']['track']]
+    
+    async def get_weekly_chart_list(self) -> List[WeeklyChart]:
+        data = await self._http.get_user_weekly_chart_list(self.name)
+        return [WeeklyChart.from_dict(chart) for chart in data['weeklychartlist']['chart']]
 
     async def get_loved_tracks(
         self, *, limit: Optional[int] = None, page: Optional[int] = None

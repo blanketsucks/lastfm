@@ -79,10 +79,11 @@ class Track:
 
     @property
     def toptags(self) -> List[Tag]:
-        if 'toptags' not in self._data:
+        data = self._data.get('toptags')
+        if data is None:
             return []
 
-        return [Tag(tag, self._http) for tag in self._data['toptags']['tag']]
+        return [Tag(tag, self._http) for tag in data['tag']]
 
     @property
     def artist(self) -> Artist:

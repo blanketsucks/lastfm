@@ -7,6 +7,7 @@ from .album import Album
 from .artist import Artist
 from .track import Track
 from .user import User
+from .tag import Tag
 
 __all__ = 'Client',
 
@@ -127,3 +128,21 @@ class Client:
     ) -> List[Artist]:
         data = await self.http.search_artists(artist, limit=limit, page=page)
         return [Artist(artist, self.http) for artist in data['results']['artistmatches']['artist']]
+    
+    async def get_chart_top_tags(
+        self, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Tag]:
+        data = await self.http.get_chart_top_tags(limit, page)
+        return [Tag(tag, self.http) for tag in data['tags']['tag']]
+    
+    async def get_country_top_tracks(
+        self, country: str, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Track]:
+        data = await self.http.get_geo_top_tracks(country, limit, page)
+        return [Track(track, self.http) for track in data['tracks']['track']]
+    
+    async def get_country_top_artists(
+        self, country: str, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Artist]:
+        data = await self.http.get_geo_top_artists(country, limit, page)
+        return [Artist(artist, self.http) for artist in data['topartists']['artist']]
