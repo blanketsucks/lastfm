@@ -35,7 +35,7 @@ class HTTPClient:
         
         params.update({'method': method, 'api_key': self.api_key, 'format': 'json', **kwargs})
         params = {k: v for k, v in params.items() if v is not None}
-
+        
         for key, value in params.items():
             if isinstance(value, bool):
                 params[key] = 1 if value else 0

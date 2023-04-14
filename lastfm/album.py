@@ -58,7 +58,12 @@ class Album:
 
         self.name: str = data['name']
 
-        self.artist: Optional[str] = data.get('artist')
+        artist = data.get('artist')
+        if isinstance(artist, dict):
+            self.artist: Optional[str] = artist['name']
+        else:
+            self.artist = artist
+
         # From what i tested, the mbid is not present if the request was made using an mbid
         self.mbid: Optional[str] = data.get('mbid')
         self.url: Optional[str] = data.get('url')

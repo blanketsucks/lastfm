@@ -167,6 +167,12 @@ class User:
 
         return tracks
     
+    async def get_library_artists(
+        self, *, limit: Optional[int] = None, page: Optional[int] = None
+    ) -> List[Artist]:
+        data = await self._http.get_library_artists(self.name, limit, page)
+        return [Artist(artist, self._http) for artist in data['artists']['artist']]
+    
     async def get_friends(
         self, *, limit: Optional[int] = None, page: Optional[int] = None
     ) -> List[User]:
